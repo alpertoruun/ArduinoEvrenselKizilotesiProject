@@ -1,0 +1,59 @@
+#include <IRremote.h>  //Kızıl ötesi kumanda için gerekli kütüphane
+#include <Servo.h>     //Servo motor kontrolü için gerekli kütüphane
+#include <SoftwareSerial.h> //SoftwareSerial kütüphanesini projeye dahil et
+SoftwareSerial bluetooth(10, 11); //Bluetooth modülünün Rx ve Tx pinleri
+
+Servo servoMotor;       //Servo motor nesnesi
+IRrecv alıcı(11);       //Kızıl ötesi alıcı pini 11'e bağlı
+decode_results kumanda; //Kumanda verilerini tutmak için nesne
+int ledPini = 9;        //LED pini
+int buzzerPini = 8;     //Buzzer pini
+int melodi[] = {262, 294, 330, 349, 392, 440, 494, 523}; //Melodi notaları
+int notalar = sizeof(melodi) / sizeof(melodi[0]);        //Notaların sayısı
+
+void setup() {
+  servoMotor.attach(6);      //Servo motor pini 6'ya bağlı
+  pinMode(ledPini, OUTPUT); //LED pini çıkış modunda
+  pinMode(buzzerPini, OUTPUT); //Buzzer pini çıkış modunda
+  alıcı.enableIRIn(); //Kızıl ötesi alıcıyı etkinleştir
+  Serial.begin(9600); //Seri haberleşme başlat
+}
+
+void loop() {
+  if (alıcı.decode(&kumanda)) { //Eğer kumanda sinyali varsa
+    switch(kumanda.value) {    //Kumandanın değerine göre işlem yap
+      case 0xFF6897:  //Kumandanın bir tuşuna basıldığında gelen sinyal
+        servoMotor.write(0);  //Servo motoru 0 dereceye çevir
+        break;
+      case 0xFF9867:  //Kumandanın bir tuşuna basıldığında gelen sinyal
+        servoMotor.write(90); //Servo motoru 90 dereceye çevir
+        break;
+      case 0xFFB04F:  //Kumandanın bir tuşuna basıldığında gelen sinyal
+        servoMotor.write(180); //Servo motoru 180 dereceye çevir
+        break;
+      case 0xFF30CF:  //Kumandanın bir tuşuna basıldığında gelen sinyal
+        digitalWrite(ledPini, HIGH); //LED'i yak
+        break;
+      case 0xFF18E7:  //Kumandanın bir tuşuna basıldığında gelen sinyal
+        digitalWrite(ledPini, LOW); //LED'i söndür
+        break;
+      case 0xFF7A85:  //Kumandanın bir tuşuna basıldığında gelen sinyal
+         for(int i = 0; i < notalar; i++) { //Melodi notalarını sırayla çal
+          tone(buzzerPini, melodi[i]);    //Buzzer'dan nota çal
+          delay(200);                     //Bir nota çalındıktan sonra kısa bir bekleme süresi
+        }
+        noTone(buzzerPini);  //Buzzer'dan çalınan notaları durdur
+        break;
+      case 0xFF10EF:  //Kumandanın bir tuşuna basıldığında gelen sinyal
+        //Burada mobil uygulama üzerinden gelen verileri okuyabilirsiniz
+        break;
+      default:
+        break;
+    }
+    alıcı.resume(); //Kumandanın sonraki sinyalini almak için hazır ol
+  }
+  if (bluetooth.available()) {    //Bluetooth modülünden veri geldiğinde
+    char receivedChar = (char)bluetooth.read();  //Gelen veriyi oku
+    //Burada alınan verilere göre işlem yapabilirsiniz
+  }
+}
